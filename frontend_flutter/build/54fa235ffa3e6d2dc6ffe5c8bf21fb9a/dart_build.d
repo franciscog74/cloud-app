@@ -1,0 +1,1 @@
+ C:\\Users\\ASwattson\\Downloads\\PROYECTO_FINAL_GASTOS\ (1)\\PROYECTO_FINAL_GASTOS\\cloud-app\\frontend_flutter\\build\\54fa235ffa3e6d2dc6ffe5c8bf21fb9a\\dart_build_result.json: 

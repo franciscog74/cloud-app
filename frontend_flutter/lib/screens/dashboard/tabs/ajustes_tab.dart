@@ -140,7 +140,7 @@ class _AjustesTabState extends State<AjustesTab> {
                           child: OutlinedButton(
                             onPressed: () async {
                               //llamada a la API para eliminar
-                              // await _apiService.eliminarCategoria(widget.tokenJWT, categoriaEdicion['id']);
+                              await _apiService.eliminarCategoria(widget.tokenJWT, categoriaEdicion['id']);
                               Navigator.pop(context);
                               _cargarCategorias();
                             },
@@ -163,9 +163,9 @@ class _AjustesTabState extends State<AjustesTab> {
 
                             // llamada a la API para Guardar/Actualizar
                             if (esEdicion) {
-                              // await _apiService.actualizarCategoria(widget.tokenJWT, categoriaEdicion['id'], nombre, colorSeleccionado);
+                              await _apiService.actualizarCategoria(widget.tokenJWT, categoriaEdicion['id'], nombre, colorSeleccionado);
                             } else {
-                              // await _apiService.crearCategoria(widget.tokenJWT, nombre, colorSeleccionado);
+                              await _apiService.crearCategoria(widget.tokenJWT, nombre, colorSeleccionado);
                             }
                             
                             Navigator.pop(context);
