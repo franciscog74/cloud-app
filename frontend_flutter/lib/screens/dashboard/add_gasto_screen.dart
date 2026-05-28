@@ -18,9 +18,7 @@ class _AddGastoScreenState extends State<AddGastoScreen> {
   int? _idCategoriaSeleccionada;
   bool _isLoadingCategorias = true;
   bool _isSaving = false;
-  
-  // NUEVO: 'gasto' o 'ingreso' para controlar el tipo de transacción
-  String _tipoSeleccionado = 'gasto'; 
+  String _tipoSeleccionado = 'gasto';
 
   @override
   void initState() {
@@ -28,18 +26,36 @@ class _AddGastoScreenState extends State<AddGastoScreen> {
     _cargarCategorias();
   }
 
+  @override
+  void dispose() {
+    _montoController.dispose();
+    super.dispose();
+  }
+
   Future<void> _cargarCategorias() async {
+    if (!mounted) return;
+    setState(() => _isLoadingCategorias = true);
     try {
       final lista = await _apiService.obtenerCategorias(widget.tokenJWT);
-      setState(() {
-        _categorias = lista;
-        if (_categorias.isNotEmpty) {
-          _idCategoriaSeleccionada = _categorias[0]['id'];
-        }
-        _isLoadingCategorias = false;
-      });
+      if (mounted) {
+        setState(() {
+          _categorias = lista;
+          if (_categorias.isNotEmpty) {
+            _idCategoriaSeleccionada = _categorias[0]['id'];
+          }
+          _isLoadingCategorias = false;
+        });
+      }
     } catch (e) {
-      setState(() => _isLoadingCategorias = false);
+      if (mounted) {
+        setState(() => _isLoadingCategorias = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            backgroundColor: Colors.red.shade800,
+          ),
+        );
+      }
     }
   }
 
@@ -60,25 +76,34 @@ class _AddGastoScreenState extends State<AddGastoScreen> {
       return;
     }
 
+    FocusScope.of(context).unfocus();
     setState(() => _isSaving = true);
 
-    // Mandamos los datos Backend
-    // NOTA:ApiService en registrarGasto debe aceptar ahora el parámetro 'tipo'
-    final exito = await _apiService.registrarGasto(
-      monto: monto,
-      idCategoria: _idCategoriaSeleccionada!,
-      tokenJWT: widget.tokenJWT,
-      tipo: _tipoSeleccionado, //ENVIAMOS EL TIPO A AWS
-    );
-
-    setState(() => _isSaving = false);
-
-    if (exito) {
-      Navigator.pop(context, true); 
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error al guardar en AWS.')),
+    try {
+      await _apiService.registrarGasto(
+        monto: monto,
+        idCategoria: _idCategoriaSeleccionada!,
+        tokenJWT: widget.tokenJWT,
+        tipo: _tipoSeleccionado,
       );
+      
+      if (mounted) {
+        Navigator.pop(context, true); 
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            backgroundColor: Colors.red.shade800,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
     }
   }
 
@@ -87,7 +112,10 @@ class _AddGastoScreenState extends State<AddGastoScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Nueva Transacción', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Nueva Transacción', 
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black),
@@ -99,15 +127,18 @@ class _AddGastoScreenState extends State<AddGastoScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 1. selector para Gasto vs Ingreso
                   Row(
                     children: [
                       Expanded(
                         child: ChoiceChip(
-                          label: const Center(child: Text('Gasto', style: TextStyle(fontWeight: FontWeight.bold))),
+                          label: const Center(
+                            child: Text('Gasto', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ),
                           selected: _tipoSeleccionado == 'gasto',
                           selectedColor: Colors.black,
-                          labelStyle: TextStyle(color: _tipoSeleccionado == 'gasto' ? Colors.white : Colors.black),
+                          labelStyle: TextStyle(
+                            color: _tipoSeleccionado == 'gasto' ? Colors.white : Colors.black,
+                          ),
                           onSelected: (selected) {
                             if (selected) setState(() => _tipoSeleccionado = 'gasto');
                           },
@@ -116,10 +147,14 @@ class _AddGastoScreenState extends State<AddGastoScreen> {
                       const SizedBox(width: 16),
                       Expanded(
                         child: ChoiceChip(
-                          label: const Center(child: Text('Ingreso', style: TextStyle(fontWeight: FontWeight.bold))),
+                          label: const Center(
+                            child: Text('Ingreso', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ),
                           selected: _tipoSeleccionado == 'ingreso',
                           selectedColor: Colors.green.shade700,
-                          labelStyle: TextStyle(color: _tipoSeleccionado == 'ingreso' ? Colors.white : Colors.black),
+                          labelStyle: TextStyle(
+                            color: _tipoSeleccionado == 'ingreso' ? Colors.white : Colors.black,
+                          ),
                           onSelected: (selected) {
                             if (selected) setState(() => _tipoSeleccionado = 'ingreso');
                           },
@@ -129,7 +164,10 @@ class _AddGastoScreenState extends State<AddGastoScreen> {
                   ),
                   const SizedBox(height: 32),
 
-                  const Text('¿Qué cantidad?', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                  const Text(
+                    '¿Qué cantidad?', 
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  ),
                   const SizedBox(height: 8),
                   TextField(
                     controller: _montoController,
@@ -143,7 +181,10 @@ class _AddGastoScreenState extends State<AddGastoScreen> {
                   ),
                   const SizedBox(height: 24),
                   
-                  const Text('Categoría', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                  const Text(
+                    'Categoría', 
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  ),
                   const SizedBox(height: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -177,13 +218,28 @@ class _AddGastoScreenState extends State<AddGastoScreen> {
                     child: ElevatedButton(
                       onPressed: _isSaving ? null : _guardarTransaccion,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: _tipoSeleccionado == 'gasto' ? Colors.black : Colors.green.shade700,
+                        backgroundColor: _tipoSeleccionado == 'gasto' 
+                            ? Colors.black 
+                            : Colors.green.shade700,
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        disabledBackgroundColor: Colors.grey.shade400,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       child: _isSaving
-                          ? const CircularProgressIndicator(color: Colors.white)
-                          : Text('Guardar ${_tipoSeleccionado == 'gasto' ? "Gasto" : "Ingreso"}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : Text(
+                              'Guardar ${_tipoSeleccionado == 'gasto' ? "Gasto" : "Ingreso"}', 
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
                     ),
                   )
                 ],

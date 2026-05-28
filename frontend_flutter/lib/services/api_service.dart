@@ -1,164 +1,128 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  // servidor EC2, FALTA esto por la IP pública de la instancia EC2
-  final String baseUrl = 'http://localhost:3000/api'; 
+  final String baseUrl = 'http://localhost:3000/api';
+  final Duration _timeout = const Duration(seconds: 10);
 
-  // --- MÉTODOS DE GASTOS E INGRESOS ---
-
-  // Guardar un gasto o ingreso en AWS
-  Future<bool> registrarGasto({
+  Future<void> registrarGasto({
     required double monto,
     required int idCategoria,
     required String tokenJWT,
-    required String tipo, // Recibe si es gasto o ingreso
+    required String tipo,
   }) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/gastos'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $tokenJWT',
-        },
-        body: jsonEncode({
-          'monto': monto,
-          'categoria_id': idCategoria, 
-          'fecha': DateTime.now().toIso8601String(),
-          'tipo': tipo, // Se envía a backend en Node.js
-        }),
-      );
+    final response = await http.post(
+      Uri.parse('$baseUrl/gastos'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $tokenJWT',
+      },
+      body: jsonEncode({
+        'monto': monto,
+        'categoria_id': idCategoria,
+        'fecha': DateTime.now().toIso8601String(),
+        'tipo': tipo,
+      }),
+    ).timeout(_timeout);
 
-      return response.statusCode == 200 || response.statusCode == 201;
-    } catch (e) {
-      print('Error de conexión registrarGasto: $e');
-      return false;
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      throw Exception('Error al registrar $tipo: HTTP ${response.statusCode}');
     }
   }
 
-  // Leer historial de transacciones desde AWS
   Future<List<dynamic>> obtenerGastos(String tokenJWT) async {
-    try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/gastos'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $tokenJWT',
-        },
-      );
+    final response = await http.get(
+      Uri.parse('$baseUrl/gastos'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $tokenJWT',
+      },
+    ).timeout(_timeout);
 
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body) as List;
-      } else {
-        print('Error del servidor al obtener gastos: ${response.body}');
-        return [];
-      }
-    } catch (e) {
-      print('Error de conexión obtenerGastos: $e');
-      return [];
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as List;
+    } else {
+      throw Exception('Error al obtener gastos: HTTP ${response.statusCode}');
     }
   }
 
-  // Eliminar una transacción en AWS
-  Future<bool> eliminarGasto(int id, String tokenJWT) async {
-    try {
-      final response = await http.delete(
-        Uri.parse('$baseUrl/gastos/$id'),
-        headers: {
-          'Authorization': 'Bearer $tokenJWT',
-        },
-      );
-      return response.statusCode == 200;
-    } catch (e) {
-      print('Error de conexión eliminarGasto: $e');
-      return false;
+  Future<void> eliminarGasto(int id, String tokenJWT) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/gastos/$id'),
+      headers: {
+        'Authorization': 'Bearer $tokenJWT',
+      },
+    ).timeout(_timeout);
+
+    if (response.statusCode != 200) {
+      throw Exception('Error al eliminar gasto: HTTP ${response.statusCode}');
     }
   }
 
-  // --- MÉTODOS DE CATEGORÍAS ---
-
-  // Función para obtener las categorías actuales desde el Backend
   Future<List<dynamic>> obtenerCategorias(String tokenJWT) async {
-    try {
-      final url = Uri.parse('$baseUrl/categorias'); 
-      
-      final response = await http
-          .get(
-            url,
-            headers: {
-              'Authorization': 'Bearer $tokenJWT',
-              'Content-Type': 'application/json',
-            },
-          )
-          .timeout(const Duration(seconds: 10));
+    final url = Uri.parse('$baseUrl/categorias');
+    final response = await http.get(
+      url,
+      headers: {
+        'Authorization': 'Bearer $tokenJWT',
+        'Content-Type': 'application/json',
+      },
+    ).timeout(_timeout);
 
-      if (response.statusCode == 200) {
-        return json.decode(response.body);
-      } else {
-        print('Error en API de categorías: ${response.statusCode}');
-        return [];
-      }
-    } catch (e) {
-      print('Error de conexión al obtener categorías: $e');
-      return [];
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else {
+      throw Exception('Error al obtener categorías: HTTP ${response.statusCode}');
     }
   }
 
-  // Crear una nueva categoría
-  Future<bool> crearCategoria(String tokenJWT, String nombre, String colorHex) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/categorias'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $tokenJWT',
-        },
-        body: jsonEncode({
-          'nombre': nombre,
-          'colorHex': colorHex,
-        }),
-      );
-      return response.statusCode == 200 || response.statusCode == 201;
-    } catch (e) {
-      print('Error de conexión crearCategoria: $e');
-      return false;
+  Future<void> crearCategoria(String tokenJWT, String nombre, String colorHex) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/categorias'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $tokenJWT',
+      },
+      body: jsonEncode({
+        'nombre': nombre,
+        'colorHex': colorHex,
+      }),
+    ).timeout(_timeout);
+
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      throw Exception('Error al crear categoría: HTTP ${response.statusCode}');
     }
   }
 
-  // Actualizar una categoría existente
-  Future<bool> actualizarCategoria(String tokenJWT, int id, String nombre, String colorHex) async {
-    try {
-      final response = await http.put(
-        Uri.parse('$baseUrl/categorias/$id'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $tokenJWT',
-        },
-        body: jsonEncode({
-          'nombre': nombre,
-          'colorHex': colorHex,
-        }),
-      );
-      return response.statusCode == 200;
-    } catch (e) {
-      print('Error de conexión actualizarCategoria: $e');
-      return false;
+  Future<void> actualizarCategoria(String tokenJWT, int id, String nombre, String colorHex) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/categorias/$id'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $tokenJWT',
+      },
+      body: jsonEncode({
+        'nombre': nombre,
+        'colorHex': colorHex,
+      }),
+    ).timeout(_timeout);
+
+    if (response.statusCode != 200) {
+      throw Exception('Error al actualizar categoría: HTTP ${response.statusCode}');
     }
   }
 
-  // Eliminar una categoría
-  Future<bool> eliminarCategoria(String tokenJWT, int id) async {
-    try {
-      final response = await http.delete(
-        Uri.parse('$baseUrl/categorias/$id'),
-        headers: {
-          'Authorization': 'Bearer $tokenJWT',
-        },
-      );
-      return response.statusCode == 200;
-    } catch (e) {
-      print('Error de conexión eliminarCategoria: $e');
-      return false;
+  Future<void> eliminarCategoria(String tokenJWT, int id) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/categorias/$id'),
+      headers: {
+        'Authorization': 'Bearer $tokenJWT',
+      },
+    ).timeout(_timeout);
+
+    if (response.statusCode != 200) {
+      throw Exception('Error al eliminar categoría: HTTP ${response.statusCode}');
     }
   }
 }
