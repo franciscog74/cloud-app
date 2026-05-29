@@ -77,20 +77,34 @@ class ApiService {
   }
 
   Future<void> crearCategoria(String tokenJWT, String nombre, String colorHex) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/categorias'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $tokenJWT',
-      },
-      body: jsonEncode({
-        'nombre': nombre,
-        'colorHex': colorHex,
-      }),
-    ).timeout(_timeout);
+    print('INICIANDO DIAGNOSTICO');
+    print('1. URL de destino configurada: $baseUrl/categorias');
+    print('2. Intentando abrir TCP hacia el host...');
+    
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/categorias'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $tokenJWT',
+        },
+        body: jsonEncode({
+          'nombre': nombre,
+          'colorHex': colorHex,
+        }),
+      ).timeout(_timeout);
 
-    if (response.statusCode != 200 && response.statusCode != 201) {
-      throw Exception('Error al crear categoría: HTTP ${response.statusCode}');
+      print('3.El servidor respondió con status: ${response.statusCode}');
+      
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw Exception('error HTTP ${response.statusCode}: ${response.body}');
+      }
+    } catch (e) {
+      print(' FALLO DE RED');
+      print('Tipo de error exacto: ${e.runtimeType}');
+      print('Detalle tecnico crudo: $e');
+      print('-------------------------------------------');
+      throw Exception('fallo de red diagnosticado: $e');
     }
   }
 
