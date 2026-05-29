@@ -4,11 +4,7 @@ const mysql = require('mysql2/promise');
 const { CognitoJwtVerifier } = require("aws-jwt-verify");
 const cors = require('cors');
 const helmet = require('helmet');
-<<<<<<< HEAD
 const fs = require('fs');
-=======
-const fs = require('node:fs');
->>>>>>> 3813db410621230e389cbdff76620ade41c6f78d
 
 const app = express();
 
@@ -32,13 +28,8 @@ const pool = mysql.createPool({
   user: process.env.DB_USER || 'admin',
   password: process.env.DB_PASS || 'password_rds',
   database: process.env.DB_NAME || 'gastos_db',
-<<<<<<< HEAD
   ssl: {
     ca: fs.readFileSync(__dirname + '/global-bundle.pem')
-=======
-  ssl  : {
-    ca : fs.readFileSync(__dirname + '/global-bundle.pem')
->>>>>>> 3813db410621230e389cbdff76620ade41c6f78d
   },
   waitForConnections: true,
   connectionLimit: process.env.DB_CONN_LIMIT ? parseInt(process.env.DB_CONN_LIMIT) : 10,
@@ -68,13 +59,9 @@ async function verificarToken(req, res, next) {
 
 app.get('/api/categorias', verificarToken, async (req, res) => {
   try {
-    const [rows] = await pool.query(
-      'SELECT id, nombre, color FROM categorias WHERE id_usuario = ? ORDER BY nombre ASC',
-      [req.idUsuarioValidado],
-      function (error, _, _) {
-        if (error)
-          console.log(error.code)
-      }
+    const [rows] = await pool.execute(
+      'SELECT id, nombre, colorHex FROM categorias WHERE id_usuario = ? ORDER BY nombre ASC',
+      [req.idUsuarioValidado]
     );
     res.status(200).json(rows);
   } catch (error) {
@@ -94,13 +81,9 @@ app.post('/api/categorias', verificarToken, async (req, res) => {
         return res.status(400).json({ error: "El colorHex debe ser un código hexadecimal de 6 caracteres válido" });
     }
 
-    await pool.query(
-      'INSERT INTO categorias (nombre, id_usuario, color) VALUES (?, ?, ?)',
-      [nombre.trim(), req.idUsuarioValidado, colorHex],
-      function (error, _, _) {
-        if (error)
-          console.log(error.code)
-      }
+    await pool.execute(
+      'INSERT INTO categorias (nombre, id_usuario, colorHex) VALUES (?, ?, ?)',
+      [nombre.trim(), req.idUsuarioValidado, colorHex]
     );
     res.status(201).json({ message: "Categoría creada exitosamente" });
   } catch (error) {
@@ -117,8 +100,8 @@ app.put('/api/categorias/:id', verificarToken, async (req, res) => {
     if (!id || isNaN(parseInt(id))) return res.status(400).json({ error: "ID de categoría inválido" });
     if (!nombre || nombre.trim().length === 0) return res.status(400).json({ error: "El nombre es obligatorio" });
 
-    const [result] = await pool.query(
-      'UPDATE categorias SET nombre = ?, color = ? WHERE id = ? AND id_usuario = ?',
+    const [result] = await pool.execute(
+      'UPDATE categorias SET nombre = ?, colorHex = ? WHERE id = ? AND id_usuario = ?',
       [nombre.trim(), colorHex, parseInt(id), req.idUsuarioValidado]
     );
 
@@ -140,7 +123,7 @@ app.delete('/api/categorias/:id', verificarToken, async (req, res) => {
 
     await connection.beginTransaction();
 
-    const [gastos] = await connection.query(
+    const [gastos] = await connection.execute(
         'SELECT id FROM historial WHERE categoria_id = ? AND id_usuario = ? LIMIT 1',
         [parseInt(id), req.idUsuarioValidado]
     );
@@ -150,7 +133,7 @@ app.delete('/api/categorias/:id', verificarToken, async (req, res) => {
         return res.status(409).json({ error: "No puedes eliminar esta categoría porque tiene transacciones asociadas. Elimina los gastos primero." });
     }
 
-    const [result] = await connection.query(
+    const [result] = await connection.execute(
       'DELETE FROM categorias WHERE id = ? AND id_usuario = ?', 
       [parseInt(id), req.idUsuarioValidado]
     );
@@ -183,8 +166,8 @@ app.post('/api/gastos', verificarToken, async (req, res) => {
     }
     const tipoSeguro = (tipo === 'ingreso') ? 'ingreso' : 'gasto';
 
-    await pool.query(
-      `INSERT INTO historial (id_usuario, fecha_registro, categoria, monto, tipo) 
+    await pool.execute(
+      `INSERT INTO historial (id_usuario, fecha_registro, categoria_id, monto, tipo) 
        VALUES (?, NOW(), ?, ?, ?)`,
       [req.idUsuarioValidado, parseInt(categoria_id), parseFloat(monto), tipoSeguro]
     );
@@ -204,11 +187,11 @@ app.get('/api/gastos', verificarToken, async (req, res) => {
     let limite = parseInt(req.query.limite) || 100;
     limite = Math.min(limite, 500);
 
-    const [rows] = await pool.query(
+    const [rows] = await pool.execute(
       `SELECT h.id, h.fecha_registro, h.monto, h.tipo, 
-              c.nombre AS categoria_nombre, c.color AS categoria_colorHex
+              c.nombre AS categoria_nombre, c.colorHex AS categoria_colorHex
        FROM historial h
-       JOIN categorias c ON h.categoria = c.id
+       JOIN categorias c ON h.categoria_id = c.id
        WHERE h.id_usuario = ?
        ORDER BY h.fecha_registro DESC
        LIMIT ?`,
@@ -226,7 +209,7 @@ app.delete('/api/gastos/:id', verificarToken, async (req, res) => {
     const { id } = req.params;
     if (!id || isNaN(parseInt(id))) return res.status(400).json({ error: "ID de transacción inválido" });
 
-    const [result] = await pool.query(
+    const [result] = await pool.execute(
       'DELETE FROM historial WHERE id = ? AND id_usuario = ?',
       [parseInt(id), req.idUsuarioValidado]
     );
