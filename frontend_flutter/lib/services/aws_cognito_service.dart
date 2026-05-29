@@ -1,16 +1,13 @@
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/foundation.dart';
 
 class AwsCognitoService {
-  final String _clientId = dotenv.env['AWS_COGNITO_CLIENT_ID'] ?? '';
-  final String _clientSecret = dotenv.env['AWS_COGNITO_CLIENT_SECRET'] ?? '';
-  final String _endpoint = dotenv.env['AWS_COGNITO_ENDPOINT'] ?? '';
+  final String _clientId = '4tre8tk0co9c1lgslqiaes347v';
+  final String _clientSecret = '1gvnrspt5fqv1qkub6v261v9f9grbs8lhel86qqmqna4mpuhosed';
+  final String _endpoint = 'https://cognito-idp.us-east-1.amazonaws.com';
 
-  /// Calcula el SECRET_HASH requerido por AWS Cognito cuando un Client App posee un Client Secret.
-  /// La fórmula matemática de AWS: Base64(HMAC-SHA256(ClientSecret, Username + ClientId))
   String _calculateSecretHash(String username) {
     final key = utf8.encode(_clientSecret);
     final bytes = utf8.encode(username + _clientId);
@@ -19,7 +16,6 @@ class AwsCognitoService {
     return base64.encode(digest.bytes);
   }
 
-  /// Registra un nuevo usuario en el sistema de control de gastos utilizando  correo electrónico.
   Future<bool> signUp(String email, String password) async {
     final secretHash = _calculateSecretHash(email);
     
@@ -57,7 +53,6 @@ class AwsCognitoService {
     }
   }
 
-  /// Confirma el código que Cognito envia
   Future<bool> confirmSignUp(String email, String confirmationCode) async {
     final secretHash = _calculateSecretHash(email);
 
@@ -92,8 +87,6 @@ class AwsCognitoService {
     }
   }
 
-  /// Inicia sesión y extrae los tokens
-  /// Da el Token JWT completo para pasarlo al Backend
   Future<String?> signIn(String email, String password) async {
     final secretHash = _calculateSecretHash(email);
 
@@ -134,7 +127,6 @@ class AwsCognitoService {
     }
   }
 
-  /// Solicita a AWS Cognito que envíe un coigo de recuperación al correo del usuario
   Future<bool> forgotPassword(String email) async {
     final secretHash = _calculateSecretHash(email);
 
@@ -168,7 +160,6 @@ class AwsCognitoService {
     }
   }
 
-  /// Confirma la nueva contraseña utilizando el codigo 
   Future<bool> confirmForgotPassword(String email, String confirmationCode, String newPassword) async {
     final secretHash = _calculateSecretHash(email);
 

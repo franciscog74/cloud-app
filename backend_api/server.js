@@ -4,6 +4,7 @@ const mysql = require('mysql2/promise');
 const { CognitoJwtVerifier } = require("aws-jwt-verify");
 const cors = require('cors');
 const helmet = require('helmet');
+const fs = require('fs');
 
 const app = express();
 
@@ -27,6 +28,9 @@ const pool = mysql.createPool({
   user: process.env.DB_USER || 'admin',
   password: process.env.DB_PASS || 'password_rds',
   database: process.env.DB_NAME || 'gastos_db',
+  ssl: {
+    ca: fs.readFileSync(__dirname + '/global-bundle.pem')
+  },
   waitForConnections: true,
   connectionLimit: process.env.DB_CONN_LIMIT ? parseInt(process.env.DB_CONN_LIMIT) : 10,
   queueLimit: 0,
