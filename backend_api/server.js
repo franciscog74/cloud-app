@@ -60,7 +60,7 @@ async function verificarToken(req, res, next) {
 app.get('/api/categorias', verificarToken, async (req, res) => {
   try {
     const [rows] = await pool.execute(
-      'SELECT id, nombre, colorHex FROM categorias WHERE id_usuario = ? ORDER BY nombre ASC',
+      'SELECT id, nombre, color AS colorHex FROM categorias WHERE id_usuario = ? ORDER BY nombre ASC',
       [req.idUsuarioValidado]
     );
     res.status(200).json(rows);
@@ -82,7 +82,7 @@ app.post('/api/categorias', verificarToken, async (req, res) => {
     }
 
     await pool.execute(
-      'INSERT INTO categorias (nombre, id_usuario, colorHex) VALUES (?, ?, ?)',
+      'INSERT INTO categorias (nombre, id_usuario, color) VALUES (?, ?, ?)',
       [nombre.trim(), req.idUsuarioValidado, colorHex]
     );
     res.status(201).json({ message: "Categoría creada exitosamente" });
@@ -101,7 +101,7 @@ app.put('/api/categorias/:id', verificarToken, async (req, res) => {
     if (!nombre || nombre.trim().length === 0) return res.status(400).json({ error: "El nombre es obligatorio" });
 
     const [result] = await pool.execute(
-      'UPDATE categorias SET nombre = ?, colorHex = ? WHERE id = ? AND id_usuario = ?',
+      'UPDATE categorias SET nombre = ?, color = ? WHERE id = ? AND id_usuario = ?',
       [nombre.trim(), colorHex, parseInt(id), req.idUsuarioValidado]
     );
 
@@ -124,7 +124,7 @@ app.delete('/api/categorias/:id', verificarToken, async (req, res) => {
     await connection.beginTransaction();
 
     const [gastos] = await connection.execute(
-        'SELECT id FROM historial WHERE categoria_id = ? AND id_usuario = ? LIMIT 1',
+        'SELECT id FROM historial WHERE categoria = ? AND id_usuario = ? LIMIT 1',
         [parseInt(id), req.idUsuarioValidado]
     );
 
@@ -167,7 +167,7 @@ app.post('/api/gastos', verificarToken, async (req, res) => {
     const tipoSeguro = (tipo === 'ingreso') ? 'ingreso' : 'gasto';
 
     await pool.execute(
-      `INSERT INTO historial (id_usuario, fecha_registro, categoria_id, monto, tipo) 
+      `INSERT INTO historial (id_usuario, fecha_registro, categoria, monto, tipo) 
        VALUES (?, NOW(), ?, ?, ?)`,
       [req.idUsuarioValidado, parseInt(categoria_id), parseFloat(monto), tipoSeguro]
     );
@@ -189,9 +189,9 @@ app.get('/api/gastos', verificarToken, async (req, res) => {
 
     const [rows] = await pool.execute(
       `SELECT h.id, h.fecha_registro, h.monto, h.tipo, 
-              c.nombre AS categoria_nombre, c.colorHex AS categoria_colorHex
+              c.nombre AS categoria_nombre, c.color AS categoria_colorHex
        FROM historial h
-       JOIN categorias c ON h.categoria_id = c.id
+       JOIN categorias c ON h.categoria = c.id
        WHERE h.id_usuario = ?
        ORDER BY h.fecha_registro DESC
        LIMIT ?`,
