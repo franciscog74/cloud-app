@@ -4,6 +4,7 @@ const mysql = require('mysql2/promise');
 const { CognitoJwtVerifier } = require("aws-jwt-verify");
 const cors = require('cors');
 const helmet = require('helmet');
+const fs = require('node:fs');
 
 const app = express();
 
@@ -27,6 +28,9 @@ const pool = mysql.createPool({
   user: process.env.DB_USER || 'admin',
   password: process.env.DB_PASS || 'password_rds',
   database: process.env.DB_NAME || 'gastos_db',
+  ssl  : {
+    ca : fs.readFileSync(__dirname + '/global-bundle.pem')
+  },
   waitForConnections: true,
   connectionLimit: process.env.DB_CONN_LIMIT ? parseInt(process.env.DB_CONN_LIMIT) : 10,
   queueLimit: 0,
@@ -55,8 +59,8 @@ async function verificarToken(req, res, next) {
 
 app.get('/api/categorias', verificarToken, async (req, res) => {
   try {
-    const [rows] = await pool.execute(
-      'SELECT id, nombre, colorHex FROM categorias WHERE id_usuario = ? ORDER BY nombre ASC',
+    const [rows] = await pool.query(
+      'SELECT id, nombre, color FROM categorias WHERE id_usuario = ? ORDER BY nombre ASC',
       [req.idUsuarioValidado]
     );
     res.status(200).json(rows);
@@ -77,8 +81,8 @@ app.post('/api/categorias', verificarToken, async (req, res) => {
         return res.status(400).json({ error: "El colorHex debe ser un código hexadecimal de 6 caracteres válido" });
     }
 
-    await pool.execute(
-      'INSERT INTO categorias (nombre, id_usuario, colorHex) VALUES (?, ?, ?)',
+    await pool.query(
+      'INSERT INTO categorias (nombre, id_usuario, color) VALUES (?, ?, ?)',
       [nombre.trim(), req.idUsuarioValidado, colorHex]
     );
     res.status(201).json({ message: "Categoría creada exitosamente" });
@@ -96,8 +100,8 @@ app.put('/api/categorias/:id', verificarToken, async (req, res) => {
     if (!id || isNaN(parseInt(id))) return res.status(400).json({ error: "ID de categoría inválido" });
     if (!nombre || nombre.trim().length === 0) return res.status(400).json({ error: "El nombre es obligatorio" });
 
-    const [result] = await pool.execute(
-      'UPDATE categorias SET nombre = ?, colorHex = ? WHERE id = ? AND id_usuario = ?',
+    const [result] = await pool.query(
+      'UPDATE categorias SET nombre = ?, color = ? WHERE id = ? AND id_usuario = ?',
       [nombre.trim(), colorHex, parseInt(id), req.idUsuarioValidado]
     );
 
@@ -119,7 +123,7 @@ app.delete('/api/categorias/:id', verificarToken, async (req, res) => {
 
     await connection.beginTransaction();
 
-    const [gastos] = await connection.execute(
+    const [gastos] = await connection.query(
         'SELECT id FROM historial WHERE categoria_id = ? AND id_usuario = ? LIMIT 1',
         [parseInt(id), req.idUsuarioValidado]
     );
@@ -129,7 +133,7 @@ app.delete('/api/categorias/:id', verificarToken, async (req, res) => {
         return res.status(409).json({ error: "No puedes eliminar esta categoría porque tiene transacciones asociadas. Elimina los gastos primero." });
     }
 
-    const [result] = await connection.execute(
+    const [result] = await connection.query(
       'DELETE FROM categorias WHERE id = ? AND id_usuario = ?', 
       [parseInt(id), req.idUsuarioValidado]
     );
@@ -162,8 +166,8 @@ app.post('/api/gastos', verificarToken, async (req, res) => {
     }
     const tipoSeguro = (tipo === 'ingreso') ? 'ingreso' : 'gasto';
 
-    await pool.execute(
-      `INSERT INTO historial (id_usuario, fecha_registro, categoria_id, monto, tipo) 
+    await pool.query(
+      `INSERT INTO historial (id_usuario, fecha_registro, categoria, monto, tipo) 
        VALUES (?, NOW(), ?, ?, ?)`,
       [req.idUsuarioValidado, parseInt(categoria_id), parseFloat(monto), tipoSeguro]
     );
@@ -183,11 +187,11 @@ app.get('/api/gastos', verificarToken, async (req, res) => {
     let limite = parseInt(req.query.limite) || 100;
     limite = Math.min(limite, 500);
 
-    const [rows] = await pool.execute(
+    const [rows] = await pool.query(
       `SELECT h.id, h.fecha_registro, h.monto, h.tipo, 
-              c.nombre AS categoria_nombre, c.colorHex AS categoria_colorHex
+              c.nombre AS categoria_nombre, c.color AS categoria_colorHex
        FROM historial h
-       JOIN categorias c ON h.categoria_id = c.id
+       JOIN categorias c ON h.categoria = c.id
        WHERE h.id_usuario = ?
        ORDER BY h.fecha_registro DESC
        LIMIT ?`,
@@ -205,7 +209,7 @@ app.delete('/api/gastos/:id', verificarToken, async (req, res) => {
     const { id } = req.params;
     if (!id || isNaN(parseInt(id))) return res.status(400).json({ error: "ID de transacción inválido" });
 
-    const [result] = await pool.execute(
+    const [result] = await pool.query(
       'DELETE FROM historial WHERE id = ? AND id_usuario = ?',
       [parseInt(id), req.idUsuarioValidado]
     );
