@@ -10,17 +10,8 @@ const app = express();
 app.use(helmet()); 
 app.use(express.json({ limit: '10kb' })); 
 
-const origenesPermitidos = ['https://www.tu-dominio-en-aws.com'];
-
 app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || origin.startsWith('http://localhost:') || origenesPermitidos.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      console.error(`Origen denegado por CORS: ${origin}`);
-      callback(new Error('Bloqueado por CORS de AWS'));
-    }
-  },
+  origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -39,7 +30,7 @@ const pool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: process.env.DB_CONN_LIMIT ? parseInt(process.env.DB_CONN_LIMIT) : 10,
   queueLimit: 0,
-  timezone: '+00:00',
+  timezone: '-06:00',
   supportBigNumbers: true, 
   bigNumberStrings: true
 });
@@ -171,12 +162,10 @@ app.post('/api/gastos', verificarToken, async (req, res) => {
     }
     const tipoSeguro = (tipo === 'ingreso') ? 'ingreso' : 'gasto';
 
-    const fechaActual = new Date().toISOString().slice(0, 19).replace('T', ' ');
-
     await pool.execute(
       `INSERT INTO historial (id_usuario, fecha_registro, categoria_id, monto, tipo) 
-       VALUES (?, ?, ?, ?, ?)`,
-      [req.idUsuarioValidado, fechaActual, parseInt(categoria_id), parseFloat(monto), tipoSeguro]
+       VALUES (?, NOW(), ?, ?, ?)`,
+      [req.idUsuarioValidado, parseInt(categoria_id), parseFloat(monto), tipoSeguro]
     );
 
     res.status(201).json({ message: "Transacción registrada exitosamente" });
@@ -191,7 +180,8 @@ app.post('/api/gastos', verificarToken, async (req, res) => {
 
 app.get('/api/gastos', verificarToken, async (req, res) => {
   try {
-    const limite = parseInt(req.query.limite) || 100;
+    let limite = parseInt(req.query.limite) || 100;
+    limite = Math.min(limite, 500);
 
     const [rows] = await pool.execute(
       `SELECT h.id, h.fecha_registro, h.monto, h.tipo, 

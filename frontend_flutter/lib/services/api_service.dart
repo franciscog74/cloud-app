@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  final String baseUrl = 'http://localhost:3000/api';
+  final String baseUrl = 'http://backend:3000/api';
   final Duration _timeout = const Duration(seconds: 10);
 
   Future<void> registrarGasto({
@@ -21,7 +21,6 @@ class ApiService {
       body: jsonEncode({
         'monto': monto,
         'categoria_id': idCategoria,
-        'fecha': DateTime.now().toIso8601String(),
         'tipo': tipo,
       }),
     ).timeout(_timeout);
