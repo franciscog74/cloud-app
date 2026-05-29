@@ -187,7 +187,7 @@ app.get('/api/gastos', verificarToken, async (req, res) => {
     let limite = parseInt(req.query.limite) || 100;
     limite = Math.min(limite, 500);
 
-    const [rows] = await pool.execute(
+    const [rows] = await pool.query(
       `SELECT h.id, h.fecha_registro, h.monto, h.tipo, 
               c.nombre AS categoria_nombre, c.color AS categoria_colorHex
        FROM historial h
