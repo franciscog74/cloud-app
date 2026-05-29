@@ -61,7 +61,11 @@ app.get('/api/categorias', verificarToken, async (req, res) => {
   try {
     const [rows] = await pool.query(
       'SELECT id, nombre, color FROM categorias WHERE id_usuario = ? ORDER BY nombre ASC',
-      [req.idUsuarioValidado]
+      [req.idUsuarioValidado],
+      function (error, _, _) {
+        if (error)
+          console.log(error.code)
+      }
     );
     res.status(200).json(rows);
   } catch (error) {
@@ -83,7 +87,11 @@ app.post('/api/categorias', verificarToken, async (req, res) => {
 
     await pool.query(
       'INSERT INTO categorias (nombre, id_usuario, color) VALUES (?, ?, ?)',
-      [nombre.trim(), req.idUsuarioValidado, colorHex]
+      [nombre.trim(), req.idUsuarioValidado, colorHex],
+      function (error, _, _) {
+        if (error)
+          console.log(error.code)
+      }
     );
     res.status(201).json({ message: "Categoría creada exitosamente" });
   } catch (error) {
