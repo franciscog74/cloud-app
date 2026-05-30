@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../../services/api_service.dart';
 import '../../../widgets/graficos/grafica_pastel_categorias.dart';
+import '../../../widgets/charts/gastos_mensuales_chart.dart';
 
 class InicioTab extends StatefulWidget {
   final String tokenJWT;
@@ -54,7 +55,9 @@ class _InicioTabState extends State<InicioTab> {
             }
 
             String catNombre = tx['categoria_nombre'] ?? 'Otros';
-            String catColor = tx['categoria_color'] ?? '9E9E9E'; 
+            String rawHex = (tx['categoria_colorHex'] ?? tx['categoria_color'] ?? tx['colorHex'] ?? '9E9E9E').toString();
+            String catColor = rawHex.replaceAll('#', '').trim();
+            if (catColor.length != 6) catColor = '9E9E9E';
             
             if (categoriasMap.containsKey(catNombre)) {
               categoriasMap[catNombre]!['monto'] += monto;
@@ -105,6 +108,11 @@ class _InicioTabState extends State<InicioTab> {
                         const SizedBox(height: 40),
                         SizedBox(height: 280, child: _buildWeeklyChart(gastosPorDia, maxGastoDiario, diaActual)),
                         
+                        const Padding(padding: EdgeInsets.symmetric(vertical: 40.0), child: Divider(color: Color(0xFFF1F5F9), thickness: 2)),
+                        
+                        // AQUÍ INYECTAMOS EL NUEVO COMPONENTE
+                        const GastosMensualesChart(),
+
                         const Padding(padding: EdgeInsets.symmetric(vertical: 40.0), child: Divider(color: Color(0xFFF1F5F9), thickness: 2)),
 
                         const Text('Distribución de Gastos', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
@@ -250,7 +258,17 @@ class _InicioTabState extends State<InicioTab> {
     String tipo = tx['tipo'] ?? 'gasto';
     bool esIngreso = tipo == 'ingreso';
     double monto = double.tryParse(tx['monto'].toString()) ?? 0.0;
-    Color colorCat = Color(int.parse("0xFF${tx['categoria_color'] ?? '000000'}"));
+    
+    String rawHex = (tx['categoria_colorHex'] ?? tx['categoria_color'] ?? tx['colorHex'] ?? '9E9E9E').toString();
+    String catColorHex = rawHex.replaceAll('#', '').trim();
+    if (catColorHex.length != 6) catColorHex = '9E9E9E';
+    
+    Color colorCat;
+    try {
+      colorCat = Color(int.parse("0xFF$catColorHex"));
+    } catch (_) {
+      colorCat = const Color(0xFF94A3B8);
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16.0),

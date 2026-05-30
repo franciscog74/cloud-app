@@ -7,22 +7,25 @@ class GastosMensualesChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(color: const Color(0xFF94A3B8).withOpacity(0.15), blurRadius: 24, offset: const Offset(0, 10))
+        ]
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Evolución de Gastos (Últimos 6 meses)',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            'Evolución de Gastos (6 Meses)',
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 40),
           SizedBox(
-            height: 250,
+            height: 280,
             child: BarChart(
               BarChartData(
                 alignment: BarChartAlignment.spaceAround,
@@ -36,10 +39,10 @@ class GastosMensualesChart extends StatelessWidget {
                       getTitlesWidget: (value, meta) {
                         const titles = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'];
                         return Padding(
-                          padding: const EdgeInsets.only(top: 8.0),
+                          padding: const EdgeInsets.only(top: 16.0),
                           child: Text(
                             titles[value.toInt()],
-                            style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                            style: const TextStyle(color: Color(0xFF64748B), fontSize: 13, fontWeight: FontWeight.w600),
                           ),
                         );
                       },
@@ -48,12 +51,12 @@ class GastosMensualesChart extends StatelessWidget {
                   leftTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
-                      reservedSize: 40,
+                      reservedSize: 48,
                       getTitlesWidget: (value, meta) {
                         if (value == 0) return const Text('');
                         return Text(
                           '\$${(value / 1000).toInt()}k',
-                          style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                          style: const TextStyle(color: Color(0xFF64748B), fontSize: 13, fontWeight: FontWeight.w600),
                         );
                       },
                     ),
@@ -66,8 +69,8 @@ class GastosMensualesChart extends StatelessWidget {
                   drawVerticalLine: false,
                   horizontalInterval: 5000,
                   getDrawingHorizontalLine: (value) => FlLine(
-                    color: Colors.grey.shade100,
-                    strokeWidth: 1,
+                    color: const Color(0xFFF1F5F9),
+                    strokeWidth: 2,
                   ),
                 ),
                 borderData: FlBorderData(show: false),
@@ -87,20 +90,19 @@ class GastosMensualesChart extends StatelessWidget {
     );
   }
 
-  // Función para dibujar cada barra individual
   BarChartGroupData _buildBar(int x, double y) {
     return BarChartGroupData(
       x: x,
       barRods: [
         BarChartRodData(
           toY: y,
-          color: Colors.black, // Color sólido elegante
-          width: 24, // Grosor de la barra
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+          color: const Color(0xFF2563EB), 
+          width: 28, 
+          borderRadius: BorderRadius.circular(8),
           backDrawRodData: BackgroundBarChartRodData(
             show: true,
-            toY: 20000, // Altura máxima del fondo gris
-            color: Colors.grey.shade100,
+            toY: 20000, 
+            color: const Color(0xFFF1F5F9),
           ),
         ),
       ],
