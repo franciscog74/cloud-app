@@ -13,7 +13,7 @@ class _AgregarDatosTabState extends State<AgregarDatosTab> {
   final ApiService _apiService = ApiService();
   final TextEditingController _montoController = TextEditingController();
   
-  String _tipo = 'gasto'; // Gasto o Ingreso
+  String _tipo = 'gasto';
   int? _idCat;
   List<dynamic> _categorias = [];
   bool _cargando = false;
@@ -32,73 +32,75 @@ class _AgregarDatosTabState extends State<AgregarDatosTab> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade100, 
+      backgroundColor: Colors.transparent, // Hereda el fondo del layout padre
       body: Align(
-        alignment: Alignment.topCenter,
+        alignment: Alignment.topCenter,   
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(vertical: 40.0, horizontal: 16.0),
+          padding: const EdgeInsets.symmetric(vertical: 40.0, horizontal: 24.0),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 480), // Ancho máximo más compacto para web
+            constraints: const BoxConstraints(maxWidth: 520), 
             child: Container(
-              padding: const EdgeInsets.all(32.0),
+              padding: const EdgeInsets.all(40.0),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(32),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 10))
+                  BoxShadow(color: const Color(0xFF94A3B8).withOpacity(0.15), blurRadius: 30, offset: const Offset(0, 15))
                 ],
               ),
               child: Column(
-                mainAxisSize: MainAxisSize.min, //obliga a la tarjeta a usar solo el alto que necesita
+                mainAxisSize: MainAxisSize.min, 
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const Text('Nuevo Registro', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 32),
+                  const Text('Nuevo Registro', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: Color(0xFF0F172A), letterSpacing: -0.5)),
+                  const SizedBox(height: 40),
                   
                   // Selector Gasto / Ingreso
                   Row(
                     children: [
-                      _btnTipo('gasto', Colors.red),
+                      _btnTipo('gasto', const Color(0xFFEF4444), Icons.arrow_upward),
                       const SizedBox(width: 16),
-                      _btnTipo('ingreso', Colors.green),
+                      _btnTipo('ingreso', const Color(0xFF10B981), Icons.arrow_downward),
                     ],
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 40),
 
                   // Entrada de dinero
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade50,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.grey.shade300),
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
                     ),
                     child: TextField(
                       controller: _montoController,
-                      keyboardType: TextInputType.number,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold),
+                      style: const TextStyle(fontSize: 48, fontWeight: FontWeight.w800, color: Color(0xFF0F172A), letterSpacing: -1),
                       decoration: const InputDecoration(
-                        hintText: '\$0.00', 
+                        hintText: '0.00',
+                        hintStyle: TextStyle(color: Color(0xFFCBD5E1)),
                         border: InputBorder.none,
                         prefixText: '\$ ',
-                        prefixStyle: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.grey),
+                        prefixStyle: TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: Color(0xFF94A3B8)),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 48),
 
                   const Align(
                     alignment: Alignment.centerLeft,
-                    child: Text('Selecciona una Categoría', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    child: Text('Selecciona una Categoría', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18, color: Color(0xFF1E293B))),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
 
-                  // Grilla de Categorías adaptada
+                  // Grilla de Categorías
                   if (_categorias.isEmpty)
                     const Padding(
-                      padding: EdgeInsets.all(20.0),
-                      child: CircularProgressIndicator(color: Colors.black),
+                      padding: EdgeInsets.all(40.0),
+                      child: CircularProgressIndicator(color: Color(0xFF2563EB)),
                     )
                   else
                     GridView.builder(
@@ -108,33 +110,43 @@ class _AgregarDatosTabState extends State<AgregarDatosTab> {
                         crossAxisCount: 4, 
                         mainAxisSpacing: 16, 
                         crossAxisSpacing: 16,
-                        childAspectRatio: 0.85, // EVITA QUE LAS CATEGORÍAS SE ESTIREN
+                        childAspectRatio: 0.85, 
                       ),
                       itemCount: _categorias.length,
                       itemBuilder: (context, i) {
                         final c = _categorias[i];
                         bool isSelected = _idCat == c['id'];
+                        Color catColor = Color(int.parse("0xFF${c['colorHex'] ?? '94A3B8'}"));
+                        
                         return InkWell(
                           onTap: () => setState(() => _idCat = c['id']),
-                          borderRadius: BorderRadius.circular(12),
-                          child: Container(
+                          borderRadius: BorderRadius.circular(16),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
                             decoration: BoxDecoration(
-                              color: isSelected ? Colors.black.withOpacity(0.05) : Colors.transparent,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: isSelected ? Colors.black : Colors.transparent, width: 2)
+                              color: isSelected ? catColor.withOpacity(0.1) : Colors.transparent,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: isSelected ? catColor : const Color(0xFFF1F5F9), width: 2)
                             ),
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                CircleAvatar(
-                                  radius: 20,
-                                  backgroundColor: isSelected ? Colors.black : Colors.grey.shade100, 
-                                  child: Icon(Icons.category, size: 18, color: isSelected ? Colors.white : Colors.black54),
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: isSelected ? catColor : const Color(0xFFF8FAFC),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(Icons.category, size: 22, color: isSelected ? Colors.white : const Color(0xFF94A3B8)),
                                 ),
-                                const SizedBox(height: 8),
+                                const SizedBox(height: 12),
                                 Text(
                                   c['nombre'], 
-                                  style: TextStyle(fontSize: 11, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal), 
+                                  style: TextStyle(
+                                    fontSize: 12, 
+                                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                    color: isSelected ? const Color(0xFF0F172A) : const Color(0xFF64748B)
+                                  ), 
                                   overflow: TextOverflow.ellipsis,
                                   maxLines: 1,
                                 ),
@@ -145,20 +157,28 @@ class _AgregarDatosTabState extends State<AgregarDatosTab> {
                       },
                     ),
 
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 48),
 
                   // Botón Guardar
                   SizedBox(
                     width: double.infinity,
-                    height: 56,
+                    height: 64,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black, 
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        backgroundColor: const Color(0xFF2563EB), 
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                       ),
                       onPressed: _cargando ? null : () async {
                         if (_montoController.text.isEmpty || _idCat == null) {
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ingresa monto y categoría')));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Text('Ingresa un monto y selecciona una categoría', style: TextStyle(fontWeight: FontWeight.w600)),
+                              backgroundColor: const Color(0xFF0F172A),
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            )
+                          );
                           return;
                         }
 
@@ -171,13 +191,20 @@ class _AgregarDatosTabState extends State<AgregarDatosTab> {
                         );
                         setState(() => _cargando = false);
                         
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Guardado con éxito')));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: const Text('Registro guardado exitosamente', style: TextStyle(fontWeight: FontWeight.w600)),
+                            backgroundColor: const Color(0xFF10B981),
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          )
+                        );
                         _montoController.clear();
-                        setState(() => _idCat = null); // Limpiar categoría seleccionada
+                        setState(() => _idCat = null); 
                       },
                       child: _cargando 
-                        ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                        : const Text('GUARDAR REGISTRO', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                        ? const SizedBox(height: 28, width: 28, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
+                        : const Text('GUARDAR REGISTRO', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: 1)),
                     ),
                   )
                 ],
@@ -189,23 +216,35 @@ class _AgregarDatosTabState extends State<AgregarDatosTab> {
     );
   }
 
-  Widget _btnTipo(String t, Color c) {
+  Widget _btnTipo(String t, Color c, IconData icon) {
     bool sel = _tipo == t;
     return Expanded(
       child: InkWell(
         onTap: () => setState(() => _tipo = t),
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 14),
+        borderRadius: BorderRadius.circular(16),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 16),
           decoration: BoxDecoration(
-            color: sel ? c : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: sel ? c : Colors.grey.shade300, width: sel ? 0 : 1),
+            color: sel ? c.withOpacity(0.1) : Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: sel ? c : const Color(0xFFE2E8F0), width: sel ? 2 : 1),
           ),
           alignment: Alignment.center,
-          child: Text(
-            t.toUpperCase(), 
-            style: TextStyle(color: sel ? Colors.white : Colors.black87, fontWeight: FontWeight.bold)
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 20, color: sel ? c : const Color(0xFF94A3B8)),
+              const SizedBox(width: 8),
+              Text(
+                t.toUpperCase(), 
+                style: TextStyle(
+                  color: sel ? c : const Color(0xFF64748B), 
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.5
+                )
+              ),
+            ],
           ),
         ),
       ),

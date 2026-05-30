@@ -3,7 +3,8 @@ import 'dart:async';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  final String baseUrl = 'http://100.27.163.165:3000/api';
+ // final String baseUrl = 'http://100.27.163.165:3000/api';
+  final String baseUrl = 'http://localhost:3000/api';
   final Duration _timeout = const Duration(seconds: 10);
 
   Future<void> registrarGasto({

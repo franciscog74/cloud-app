@@ -22,7 +22,7 @@ class _InicioTabState extends State<InicioTab> {
       future: _apiService.obtenerGastos(widget.tokenJWT),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator(color: Colors.black));
+          return const Center(child: CircularProgressIndicator(color: Color(0xFF2563EB)));
         }
 
         if (snapshot.hasError || !snapshot.hasData) {
@@ -31,13 +31,11 @@ class _InicioTabState extends State<InicioTab> {
 
         final listaTransacciones = snapshot.data!;
         
-        // --- PROCESAMIENTO DE DATOS OPTIMIZADO ---
         double totalGastos = 0;
         double totalIngresos = 0;
         List<double> gastosPorDia = List.filled(7, 0.0);
         double maxGastoDiario = 0.0;
         
-        // Mapa para agrupar gastos por categoría para la Gráfica de Pastel
         Map<String, Map<String, dynamic>> categoriasMap = {};
 
         for (var tx in listaTransacciones) {
@@ -47,7 +45,6 @@ class _InicioTabState extends State<InicioTab> {
           if (tipo == 'gasto') {
             totalGastos += monto;
             
-            // 1. Lógica BarChart (Semanal)
             if (tx['fecha_registro'] != null) {
               try {
                 int indiceDia = DateTime.parse(tx['fecha_registro']).weekday - 1;
@@ -56,9 +53,8 @@ class _InicioTabState extends State<InicioTab> {
               } catch (_) {}
             }
 
-            // 2. Lógica PieChart (Agrupación por Categoría)
             String catNombre = tx['categoria_nombre'] ?? 'Otros';
-            String catColor = tx['categoria_color'] ?? '9E9E9E'; // Gris por defecto
+            String catColor = tx['categoria_color'] ?? '9E9E9E'; 
             
             if (categoriasMap.containsKey(catNombre)) {
               categoriasMap[catNombre]!['monto'] += monto;
@@ -78,29 +74,27 @@ class _InicioTabState extends State<InicioTab> {
         int diaActual = DateTime.now().weekday - 1;
 
         return SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(vertical: 40.0, horizontal: 16.0),
+          padding: const EdgeInsets.symmetric(vertical: 40.0, horizontal: 24.0),
           child: Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1000),
+              constraints: const BoxConstraints(maxWidth: 1100),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildHeader(),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 32),
                   
-                  // Tarjetas de Resumen
                   Wrap(
                     spacing: 24, runSpacing: 24,
                     children: [
-                      _buildSummaryCard('Balance Disponible', '\$${(totalIngresos - totalGastos).toStringAsFixed(2)}', Icons.account_balance, Colors.black, Colors.white),
-                      _buildSummaryCard('Ingresos (Mes)', '\$${totalIngresos.toStringAsFixed(2)}', Icons.arrow_downward, Colors.white, Colors.black),
-                      _buildSummaryCard('Gastos Reales', '\$${totalGastos.toStringAsFixed(2)}', Icons.arrow_upward, Colors.white, Colors.black),
+                      _buildSummaryCard('Balance Disponible', '\$${(totalIngresos - totalGastos).toStringAsFixed(2)}', Icons.account_balance_wallet, const Color(0xFF0F172A), const Color(0xFF3B82F6)),
+                      _buildSummaryCard('Ingresos (Mes)', '\$${totalIngresos.toStringAsFixed(2)}', Icons.trending_up, Colors.white, const Color(0xFF10B981)),
+                      _buildSummaryCard('Gastos Reales', '\$${totalGastos.toStringAsFixed(2)}', Icons.trending_down, Colors.white, const Color(0xFFEF4444)),
                     ],
                   ),
                   
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 48),
 
-                  // Contenedor Principal de Gráficos y Transacciones
                   Container(
                     padding: const EdgeInsets.all(32.0),
                     decoration: _cardDecoration(),
@@ -109,19 +103,18 @@ class _InicioTabState extends State<InicioTab> {
                       children: [
                         _buildChartHeader('Análisis Semanal'),
                         const SizedBox(height: 40),
-                        SizedBox(height: 250, child: _buildWeeklyChart(gastosPorDia, maxGastoDiario, diaActual)),
+                        SizedBox(height: 280, child: _buildWeeklyChart(gastosPorDia, maxGastoDiario, diaActual)),
                         
-                        const Padding(padding: EdgeInsets.symmetric(vertical: 32.0), child: Divider()),
+                        const Padding(padding: EdgeInsets.symmetric(vertical: 40.0), child: Divider(color: Color(0xFFF1F5F9), thickness: 2)),
 
-                        // --- SECCIÓN DE GRAFICA DE PASTEL ---
-                        const Text('Distribución de Gastos', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 24),
+                        const Text('Distribución de Gastos', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
+                        const SizedBox(height: 32),
                         GraficaPastelCategorias(datosCategorias: datosParaPastel),
                         
-                        const Padding(padding: EdgeInsets.symmetric(vertical: 32.0), child: Divider()),
+                        const Padding(padding: EdgeInsets.symmetric(vertical: 40.0), child: Divider(color: Color(0xFFF1F5F9), thickness: 2)),
 
-                        const Text('Transacciones Recientes', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 16),
+                        const Text('Transacciones Recientes', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
+                        const SizedBox(height: 24),
                         ...listaTransacciones.take(5).map((tx) => _buildTransactionRow(tx)),
                       ],
                     ),
@@ -135,37 +128,40 @@ class _InicioTabState extends State<InicioTab> {
     );
   }
 
-  // --- WIDGETS DE APOYO OPTIMIZADOS ---
-
   BoxDecoration _cardDecoration() {
     return BoxDecoration(
       color: Colors.white,
       borderRadius: BorderRadius.circular(24),
-      border: Border.all(color: Colors.grey.shade200),
-      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))]
+      border: Border.all(color: const Color(0xFFE2E8F0)),
+      boxShadow: [
+        BoxShadow(color: const Color(0xFF94A3B8).withOpacity(0.15), blurRadius: 24, offset: const Offset(0, 10))
+      ]
     );
   }
 
   Widget _buildHeader() {
-    return const Text('Resumen Financiero', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black));
+    return const Text('Resumen Financiero', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: Color(0xFF0F172A), letterSpacing: -0.5));
   }
 
   Widget _buildChartHeader(String title) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        Text(title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
         Row(children: ['7 días', '30 días', '12 meses'].map((f) => _buildFilterButton(f)).toList()),
       ],
     );
   }
 
-  Widget _buildSummaryCard(String title, String amount, IconData icon, Color bgColor, Color textColor) {
+  Widget _buildSummaryCard(String title, String amount, IconData icon, Color bgColor, Color accentColor) {
+    bool isDark = bgColor != Colors.white;
     return Container(
-      width: 300, padding: const EdgeInsets.all(24),
+      width: 320, padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
-        color: bgColor, borderRadius: BorderRadius.circular(20),
-        border: bgColor == Colors.white ? Border.all(color: Colors.grey.shade200) : null,
+        color: bgColor, 
+        borderRadius: BorderRadius.circular(24),
+        border: isDark ? null : Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: isDark ? [BoxShadow(color: accentColor.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 8))] : [BoxShadow(color: const Color(0xFF94A3B8).withOpacity(0.1), blurRadius: 15, offset: const Offset(0, 5))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -173,12 +169,16 @@ class _InicioTabState extends State<InicioTab> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title, style: TextStyle(color: textColor.withOpacity(0.7), fontSize: 16, fontWeight: FontWeight.w500)),
-              Icon(icon, color: textColor.withOpacity(0.7), size: 20),
+              Text(title, style: TextStyle(color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B), fontSize: 16, fontWeight: FontWeight.w600)),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(color: accentColor.withOpacity(0.15), borderRadius: BorderRadius.circular(14)),
+                child: Icon(icon, color: accentColor, size: 24),
+              ),
             ],
           ),
-          const SizedBox(height: 16),
-          Text(amount, style: TextStyle(color: textColor, fontSize: 32, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 24),
+          Text(amount, style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A), fontSize: 36, fontWeight: FontWeight.w800, letterSpacing: -1)),
         ],
       ),
     );
@@ -187,14 +187,18 @@ class _InicioTabState extends State<InicioTab> {
   Widget _buildFilterButton(String label) {
     bool isSelected = _filtroSeleccionado == label;
     return Padding(
-      padding: const EdgeInsets.only(left: 8.0),
+      padding: const EdgeInsets.only(left: 12.0),
       child: InkWell(
         onTap: () => setState(() => _filtroSeleccionado = label),
         borderRadius: BorderRadius.circular(20),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(color: isSelected ? Colors.black : Colors.transparent, borderRadius: BorderRadius.circular(20)),
-          child: Text(label, style: TextStyle(color: isSelected ? Colors.white : Colors.grey.shade600, fontSize: 14)),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected ? const Color(0xFF2563EB) : const Color(0xFFF8FAFC), 
+            borderRadius: BorderRadius.circular(20),
+            border: isSelected ? null : Border.all(color: const Color(0xFFE2E8F0))
+          ),
+          child: Text(label, style: TextStyle(color: isSelected ? Colors.white : const Color(0xFF64748B), fontSize: 14, fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500)),
         ),
       ),
     );
@@ -216,7 +220,11 @@ class _InicioTabState extends State<InicioTab> {
               showTitles: true,
               getTitlesWidget: (val, meta) {
                 const dias = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-                return SideTitleWidget(axisSide: meta.axisSide, child: Text(dias[val.toInt()], style: const TextStyle(color: Colors.grey, fontSize: 12)));
+                bool isToday = val.toInt() == diaActual;
+                return SideTitleWidget(
+                  axisSide: meta.axisSide, 
+                  child: Text(dias[val.toInt()], style: TextStyle(color: isToday ? const Color(0xFF2563EB) : const Color(0xFF94A3B8), fontSize: 13, fontWeight: isToday ? FontWeight.bold : FontWeight.w500))
+                );
               },
             ),
           ),
@@ -227,11 +235,11 @@ class _InicioTabState extends State<InicioTab> {
         barGroups: List.generate(7, (i) => BarChartGroupData(
           x: i,
           barRods: [BarChartRodData(
-            toY: gastosPorDia[i] == 0 ? topeGrafico * 0.05 : gastosPorDia[i],
-            color: i == diaActual ? Colors.black : Colors.grey.shade300,
-            width: 22,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
-            backDrawRodData: BackgroundBarChartRodData(show: true, toY: topeGrafico, color: Colors.grey.shade100),
+            toY: gastosPorDia[i] == 0 ? topeGrafico * 0.02 : gastosPorDia[i],
+            color: i == diaActual ? const Color(0xFF2563EB) : const Color(0xFF93C5FD),
+            width: 28,
+            borderRadius: BorderRadius.circular(8),
+            backDrawRodData: BackgroundBarChartRodData(show: true, toY: topeGrafico, color: const Color(0xFFF1F5F9)),
           )],
         )),
       ),
@@ -245,28 +253,37 @@ class _InicioTabState extends State<InicioTab> {
     Color colorCat = Color(int.parse("0xFF${tx['categoria_color'] ?? '000000'}"));
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12.0),
-      padding: const EdgeInsets.all(16.0),
-      decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)),
+      margin: const EdgeInsets.only(bottom: 16.0),
+      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
+      decoration: BoxDecoration(
+        color: Colors.white, 
+        borderRadius: BorderRadius.circular(16), 
+        border: Border.all(color: const Color(0xFFF1F5F9), width: 2),
+      ),
       child: Row(
         children: [
-          CircleAvatar(
-            backgroundColor: (esIngreso ? Colors.green : colorCat).withOpacity(0.1),
-            child: Icon(esIngreso ? Icons.arrow_downward : Icons.arrow_upward, color: esIngreso ? Colors.green : colorCat),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: (esIngreso ? const Color(0xFF10B981) : colorCat).withOpacity(0.15),
+              borderRadius: BorderRadius.circular(14)
+            ),
+            child: Icon(esIngreso ? Icons.arrow_downward : Icons.local_offer, color: esIngreso ? const Color(0xFF10B981) : colorCat, size: 24),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 20),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(tx['categoria_nombre'] ?? 'General', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
-                Text('${tx['fecha_registro']?.toString().split('T')[0] ?? ''}', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                Text(tx['categoria_nombre'] ?? 'General', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 17, color: Color(0xFF1E293B))),
+                const SizedBox(height: 4),
+                Text('${tx['fecha_registro']?.toString().split('T')[0] ?? ''}', style: const TextStyle(color: Color(0xFF64748B), fontSize: 14)),
               ],
             ),
           ),
           Text(
             '${esIngreso ? '+' : '-'}\$${monto.toStringAsFixed(2)}',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: esIngreso ? Colors.green.shade700 : Colors.black),
+            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: esIngreso ? const Color(0xFF10B981) : const Color(0xFF0F172A)),
           ),
         ],
       ),
