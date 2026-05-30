@@ -30,7 +30,7 @@ class _InicioTabState extends State<InicioTab> {
           return const Center(child: Text('Error al cargar datos desde AWS'));
         }
 
-        final listaTransacciones = snapshot.data!;
+        final listaTransaccionesBruta = snapshot.data!;
         
         double totalGastos = 0;
         double totalIngresos = 0;
@@ -39,7 +39,6 @@ class _InicioTabState extends State<InicioTab> {
         
         Map<String, Map<String, dynamic>> categoriasMap = {};
 
-        // ALGORITMO MESES
         DateTime ahora = DateTime.now();
         List<String> nombresMeses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
         List<double> gastosSeisMeses = List.filled(6, 0.0);
@@ -52,48 +51,63 @@ class _InicioTabState extends State<InicioTab> {
           etiquetasSeisMeses.add(nombresMeses[mesIndex]);
         }
 
-        for (var tx in listaTransacciones) {
+        DateTime limiteFecha;
+        if (_filtroSeleccionado == '7 días') {
+          limiteFecha = ahora.subtract(const Duration(days: 7));
+        } else if (_filtroSeleccionado == '12 meses') {
+          limiteFecha = ahora.subtract(const Duration(days: 365));
+        } else {
+          limiteFecha = ahora.subtract(const Duration(days: 30));
+        }
+
+        List<dynamic> transaccionesFiltradas = [];
+
+        for (var tx in listaTransaccionesBruta) {
+          if (tx['fecha_registro'] == null) continue;
+
+          DateTime fechaTxUtc = DateTime.parse(tx['fecha_registro']);
+          DateTime fechaTxLocal = fechaTxUtc.toLocal();
+          
+          tx['fecha_local_procesada'] = "${fechaTxLocal.year}-${fechaTxLocal.month.toString().padLeft(2, '0')}-${fechaTxLocal.day.toString().padLeft(2, '0')}";
+
           double monto = double.tryParse(tx['monto'].toString()) ?? 0;
           String tipo = tx['tipo'] ?? 'gasto';
 
           if (tipo == 'gasto') {
-            totalGastos += monto;
-            
-            if (tx['fecha_registro'] != null) {
-              try {
-                DateTime fechaTx = DateTime.parse(tx['fecha_registro']);
-                
-                // Lógica Semanal
-                int indiceDia = fechaTx.weekday - 1;
-                gastosPorDia[indiceDia] += monto;
-                if (gastosPorDia[indiceDia] > maxGastoDiario) maxGastoDiario = gastosPorDia[indiceDia];
+            int indiceDia = fechaTxLocal.weekday - 1;
+            gastosPorDia[indiceDia] += monto;
+            if (gastosPorDia[indiceDia] > maxGastoDiario) maxGastoDiario = gastosPorDia[indiceDia];
 
-                // Lógica 6 Meses
-                int diffMeses = (ahora.year - fechaTx.year) * 12 + ahora.month - fechaTx.month;
-                if (diffMeses >= 0 && diffMeses < 6) {
-                  int indiceGrafica = 5 - diffMeses;
-                  gastosSeisMeses[indiceGrafica] += monto;
-                  if (gastosSeisMeses[indiceGrafica] > maxGastoMensual) maxGastoMensual = gastosSeisMeses[indiceGrafica];
-                }
-              } catch (_) {}
+            int diffMeses = (ahora.year - fechaTxLocal.year) * 12 + ahora.month - fechaTxLocal.month;
+            if (diffMeses >= 0 && diffMeses < 6) {
+              int indiceGrafica = 5 - diffMeses;
+              gastosSeisMeses[indiceGrafica] += monto;
+              if (gastosSeisMeses[indiceGrafica] > maxGastoMensual) maxGastoMensual = gastosSeisMeses[indiceGrafica];
             }
+          }
 
-            String catNombre = tx['categoria_nombre'] ?? 'Otros';
-            String rawHex = (tx['categoria_colorHex'] ?? tx['categoria_color'] ?? tx['colorHex'] ?? '9E9E9E').toString();
-            String catColor = rawHex.replaceAll('#', '').trim();
-            if (catColor.length != 6) catColor = '9E9E9E';
+          if (fechaTxLocal.isAfter(limiteFecha)) {
+            transaccionesFiltradas.add(tx);
             
-            if (categoriasMap.containsKey(catNombre)) {
-              categoriasMap[catNombre]!['monto'] += monto;
+            if (tipo == 'gasto') {
+              totalGastos += monto;
+              String catNombre = tx['categoria_nombre'] ?? 'Otros';
+              String rawHex = (tx['categoria_colorHex'] ?? tx['categoria_color'] ?? tx['colorHex'] ?? '9E9E9E').toString();
+              String catColor = rawHex.replaceAll('#', '').trim();
+              if (catColor.length != 6) catColor = '9E9E9E';
+              
+              if (categoriasMap.containsKey(catNombre)) {
+                categoriasMap[catNombre]!['monto'] += monto;
+              } else {
+                categoriasMap[catNombre] = {
+                  'nombre': catNombre,
+                  'monto': monto,
+                  'colorHex': catColor,
+                };
+              }
             } else {
-              categoriasMap[catNombre] = {
-                'nombre': catNombre,
-                'monto': monto,
-                'colorHex': catColor,
-              };
+              totalIngresos += monto;
             }
-          } else {
-            totalIngresos += monto;
           }
         }
 
@@ -113,15 +127,21 @@ class _InicioTabState extends State<InicioTab> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildHeader(),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _buildHeader(),
+                      Row(children: ['7 días', '30 días', '12 meses'].map((f) => _buildFilterButton(f)).toList()),
+                    ],
+                  ),
                   const SizedBox(height: 32),
                   
                   Wrap(
                     spacing: 24, runSpacing: 24,
                     children: [
-                      _buildSummaryCard('Balance Disponible', '\$${(totalIngresos - totalGastos).toStringAsFixed(2)}', Icons.account_balance_wallet, const Color(0xFF0F172A), const Color(0xFF3B82F6)),
-                      _buildSummaryCard('Ingresos (Mes)', '\$${totalIngresos.toStringAsFixed(2)}', Icons.trending_up, Colors.white, const Color(0xFF10B981)),
-                      _buildSummaryCard('Gastos Reales', '\$${totalGastos.toStringAsFixed(2)}', Icons.trending_down, Colors.white, const Color(0xFFEF4444)),
+                      _buildSummaryCard('Balance', '\$${(totalIngresos - totalGastos).toStringAsFixed(2)}', Icons.account_balance_wallet, const Color(0xFF0F172A), const Color(0xFF3B82F6)),
+                      _buildSummaryCard('Ingresos', '\$${totalIngresos.toStringAsFixed(2)}', Icons.trending_up, Colors.white, const Color(0xFF10B981)),
+                      _buildSummaryCard('Gastos', '\$${totalGastos.toStringAsFixed(2)}', Icons.trending_down, Colors.white, const Color(0xFFEF4444)),
                     ],
                   ),
                   
@@ -133,13 +153,12 @@ class _InicioTabState extends State<InicioTab> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildChartHeader('Análisis Semanal'),
+                        const Text('Análisis Semanal', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
                         const SizedBox(height: 40),
                         SizedBox(height: 280, child: _buildWeeklyChart(gastosPorDia, maxGastoDiario, diaActual)),
                         
                         const Padding(padding: EdgeInsets.symmetric(vertical: 40.0), child: Divider(color: Color(0xFFF1F5F9), thickness: 2)),
                         
-                        // GRÁFICA YA CONECTADA A DATOS REALES
                         GastosMensualesChart(
                           puntosGrafica: puntosGraficaMeses,
                           etiquetasMeses: etiquetasSeisMeses,
@@ -156,7 +175,13 @@ class _InicioTabState extends State<InicioTab> {
 
                         const Text('Transacciones Recientes', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
                         const SizedBox(height: 24),
-                        ...listaTransacciones.take(5).map((tx) => _buildTransactionRow(tx)),
+                        if (transaccionesFiltradas.isEmpty)
+                          const Padding(
+                            padding: EdgeInsets.all(24.0),
+                            child: Text('No hay transacciones en este periodo.', style: TextStyle(color: Color(0xFF64748B), fontSize: 16)),
+                          )
+                        else
+                          ...transaccionesFiltradas.take(5).map((tx) => _buildTransactionRow(tx)),
                       ],
                     ),
                   ),
@@ -182,16 +207,6 @@ class _InicioTabState extends State<InicioTab> {
 
   Widget _buildHeader() {
     return const Text('Resumen Financiero', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: Color(0xFF0F172A), letterSpacing: -0.5));
-  }
-
-  Widget _buildChartHeader(String title) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
-        Row(children: ['7 días', '30 días', '12 meses'].map((f) => _buildFilterButton(f)).toList()),
-      ],
-    );
   }
 
   Widget _buildSummaryCard(String title, String amount, IconData icon, Color bgColor, Color accentColor) {
@@ -328,7 +343,7 @@ class _InicioTabState extends State<InicioTab> {
               children: [
                 Text(tx['categoria_nombre'] ?? 'General', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 17, color: Color(0xFF1E293B))),
                 const SizedBox(height: 4),
-                Text('${tx['fecha_registro']?.toString().split('T')[0] ?? ''}', style: const TextStyle(color: Color(0xFF64748B), fontSize: 14)),
+                Text('${tx['fecha_local_procesada'] ?? ''}', style: const TextStyle(color: Color(0xFF64748B), fontSize: 14)),
               ],
             ),
           ),
