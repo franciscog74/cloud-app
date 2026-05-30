@@ -110,7 +110,6 @@ class _InicioTabState extends State<InicioTab> {
                         
                         const Padding(padding: EdgeInsets.symmetric(vertical: 40.0), child: Divider(color: Color(0xFFF1F5F9), thickness: 2)),
                         
-                        // AQUÍ INYECTAMOS EL NUEVO COMPONENTE
                         const GastosMensualesChart(),
 
                         const Padding(padding: EdgeInsets.symmetric(vertical: 40.0), child: Divider(color: Color(0xFFF1F5F9), thickness: 2)),
