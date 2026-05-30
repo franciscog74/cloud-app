@@ -16,18 +16,17 @@ class _GraficaPastelCategoriasState extends State<GraficaPastelCategorias> {
   @override
   Widget build(BuildContext context) {
     if (widget.datosCategorias.isEmpty) {
-      return SizedBox(
+      return const SizedBox(
         height: 200,
         child: Center(
           child: Text(
-            'No hay datos suficientes para graficar.',
-            style: TextStyle(color: Colors.grey.shade500),
+            'No hay datos para graficar',
+            style: TextStyle(color: Color(0xFF94A3B8), fontSize: 16, fontWeight: FontWeight.w500),
           ),
         ),
       );
     }
 
-    // Calculamos el total para sacar porcentajes
     double totalMonto = widget.datosCategorias.fold(
       0.0, 
       (sum, item) => sum + (double.tryParse(item['monto'].toString()) ?? 0.0)
@@ -35,11 +34,10 @@ class _GraficaPastelCategoriasState extends State<GraficaPastelCategorias> {
 
     return Row(
       children: [
-        // La gráfica tipo Dona
         Expanded(
-          flex: 2,
+          flex: 5,
           child: SizedBox(
-            height: 200,
+            height: 240,
             child: PieChart(
               PieChartData(
                 pieTouchData: PieTouchData(
@@ -56,45 +54,52 @@ class _GraficaPastelCategoriasState extends State<GraficaPastelCategorias> {
                   },
                 ),
                 borderData: FlBorderData(show: false),
-                sectionsSpace: 2, // Espacio entre las rebanadas
-                centerSpaceRadius: 40, // Esto hace que parezca una dona
+                sectionsSpace: 4,
+                centerSpaceRadius: 50,
                 sections: _generarSecciones(totalMonto),
               ),
             ),
           ),
         ),
-        
-        // Leyenda lateral con el detalle de categorías
+        const SizedBox(width: 32),
         Expanded(
-          flex: 1,
+          flex: 4,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: widget.datosCategorias.map((categoria) {
               Color colorIcono;
               try {
-                colorIcono = Color(int.parse("0xFF${categoria['colorHex']}"));
+                String hexStr = categoria['colorHex'].toString().replaceAll('#', '').trim();
+                if (hexStr.length == 6) {
+                  colorIcono = Color(int.parse("0xFF$hexStr"));
+                } else {
+                  colorIcono = const Color(0xFF94A3B8);
+                }
               } catch (_) {
-                colorIcono = Colors.black;
+                colorIcono = const Color(0xFF94A3B8);
               }
 
               return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4.0),
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
                 child: Row(
                   children: [
                     Container(
-                      width: 12,
-                      height: 12,
+                      width: 16,
+                      height: 16,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: colorIcono,
+                        boxShadow: [
+                          BoxShadow(color: colorIcono.withOpacity(0.3), blurRadius: 4, offset: const Offset(0, 2))
+                        ]
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         categoria['nombre'] ?? 'Desconocido',
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF1E293B)),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -111,8 +116,8 @@ class _GraficaPastelCategoriasState extends State<GraficaPastelCategorias> {
   List<PieChartSectionData> _generarSecciones(double totalMonto) {
     return List.generate(widget.datosCategorias.length, (i) {
       final isTouched = i == touchedIndex;
-      final double fontSize = isTouched ? 16.0 : 12.0;
-      final double radius = isTouched ? 60.0 : 50.0;
+      final double fontSize = isTouched ? 16.0 : 13.0;
+      final double radius = isTouched ? 70.0 : 60.0;
       
       final data = widget.datosCategorias[i];
       final double monto = double.tryParse(data['monto'].toString()) ?? 0.0;
@@ -120,9 +125,14 @@ class _GraficaPastelCategoriasState extends State<GraficaPastelCategorias> {
 
       Color colorSeccion;
       try {
-        colorSeccion = Color(int.parse("0xFF${data['colorHex']}"));
+        String hexStr = data['colorHex'].toString().replaceAll('#', '').trim();
+        if (hexStr.length == 6) {
+          colorSeccion = Color(int.parse("0xFF$hexStr"));
+        } else {
+          colorSeccion = const Color(0xFF94A3B8);
+        }
       } catch (_) {
-        colorSeccion = Colors.grey;
+        colorSeccion = const Color(0xFF94A3B8);
       }
 
       return PieChartSectionData(
@@ -132,9 +142,9 @@ class _GraficaPastelCategoriasState extends State<GraficaPastelCategorias> {
         radius: radius,
         titleStyle: TextStyle(
           fontSize: fontSize,
-          fontWeight: FontWeight.bold,
+          fontWeight: FontWeight.w800,
           color: Colors.white,
-          shadows: const [Shadow(color: Colors.black26, blurRadius: 2)],
+          shadows: [Shadow(color: Colors.black.withOpacity(0.3), blurRadius: 4)],
         ),
       );
     });

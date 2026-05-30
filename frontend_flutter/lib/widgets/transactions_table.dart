@@ -8,10 +8,12 @@ class TransactionsTable extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: Colors.white, 
-        borderRadius: BorderRadius.circular(24), 
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: [BoxShadow(color: const Color(0xFF94A3B8).withOpacity(0.1), blurRadius: 20, offset: const Offset(0, 8))]
+        boxShadow: [
+          BoxShadow(color: const Color(0xFF94A3B8).withOpacity(0.1), blurRadius: 24, offset: const Offset(0, 10))
+        ]
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -25,19 +27,23 @@ class TransactionsTable extends StatelessWidget {
             itemBuilder: (ctx, i) => Container(
               margin: const EdgeInsets.only(bottom: 12),
               decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFF1F5F9))
+                border: Border.all(color: const Color(0xFFF1F5F9), width: 2)
               ),
               child: ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 leading: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(color: const Color(0xFFE0E7FF), borderRadius: BorderRadius.circular(12)),
-                  child: const Icon(Icons.receipt_long, color: Color(0xFF4F46E5)),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E293B).withOpacity(0.05),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.receipt_long_rounded, color: Color(0xFF1E293B)),
                 ),
-                title: Text("Gasto #${i + 1}", style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF1E293B), fontSize: 16)),
-                trailing: const Text("\$100.00", style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0F172A), fontSize: 16)),
+                title: Text("Transacción de prueba #${i + 1}", style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF1E293B), fontSize: 16)),
+                subtitle: const Text("2026-05-30", style: TextStyle(color: Color(0xFF64748B), fontSize: 13, fontWeight: FontWeight.w500)),
+                trailing: const Text("-\$100.00", style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF0F172A), fontSize: 16)),
               ),
             ),
           ),
