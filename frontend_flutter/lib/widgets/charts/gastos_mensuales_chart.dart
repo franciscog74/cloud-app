@@ -2,10 +2,30 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 
 class GastosMensualesChart extends StatelessWidget {
-  const GastosMensualesChart({super.key});
+  final List<FlSpot> puntosGrafica;
+  final List<String> etiquetasMeses;
+  final double maximoY;
+
+  const GastosMensualesChart({
+    super.key, 
+    required this.puntosGrafica, 
+    required this.etiquetasMeses,
+    required this.maximoY,
+  });
 
   @override
   Widget build(BuildContext context) {
+    if (puntosGrafica.isEmpty) {
+      return Container(
+        height: 280,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), border: Border.all(color: const Color(0xFFE2E8F0))),
+        child: const Text('No hay datos históricos suficientes', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w500)),
+      );
+    }
+
+    double topeGrafico = maximoY == 0 ? 100 : maximoY * 1.2;
+
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
@@ -31,7 +51,7 @@ class GastosMensualesChart extends StatelessWidget {
                 gridData: FlGridData(
                   show: true,
                   drawVerticalLine: false,
-                  horizontalInterval: 5000,
+                  horizontalInterval: topeGrafico / 5 > 0 ? topeGrafico / 5 : 1,
                   getDrawingHorizontalLine: (value) {
                     return FlLine(color: const Color(0xFFF1F5F9), strokeWidth: 2);
                   },
@@ -46,12 +66,12 @@ class GastosMensualesChart extends StatelessWidget {
                       reservedSize: 32,
                       interval: 1,
                       getTitlesWidget: (value, meta) {
-                        const titles = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'];
-                        if (value.toInt() < 0 || value.toInt() >= titles.length) return const Text('');
+                        int index = value.toInt();
+                        if (index < 0 || index >= etiquetasMeses.length) return const Text('');
                         return Padding(
                           padding: const EdgeInsets.only(top: 12.0),
                           child: Text(
-                            titles[value.toInt()],
+                            etiquetasMeses[index],
                             style: const TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600, fontSize: 13),
                           ),
                         );
@@ -61,34 +81,26 @@ class GastosMensualesChart extends StatelessWidget {
                   leftTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
-                      interval: 5000,
+                      interval: topeGrafico / 5 > 0 ? topeGrafico / 5 : 1,
                       reservedSize: 48,
                       getTitlesWidget: (value, meta) {
                         if (value == 0) return const Text('');
-                        return Text(
-                          '\$${(value / 1000).toInt()}k',
-                          style: const TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600, fontSize: 13),
-                          textAlign: TextAlign.left,
-                        );
+                        if (value >= 1000) {
+                          return Text('\$${(value / 1000).toStringAsFixed(1)}k', style: const TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600, fontSize: 13), textAlign: TextAlign.left);
+                        }
+                        return Text('\$${value.toInt()}', style: const TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600, fontSize: 13), textAlign: TextAlign.left);
                       },
                     ),
                   ),
                 ),
                 borderData: FlBorderData(show: false),
                 minX: 0,
-                maxX: 5,
+                maxX: (etiquetasMeses.length - 1).toDouble(),
                 minY: 0,
-                maxY: 25000,
+                maxY: topeGrafico,
                 lineBarsData: [
                   LineChartBarData(
-                    spots: const [
-                      FlSpot(0, 12000),
-                      FlSpot(1, 15000),
-                      FlSpot(2, 8000),
-                      FlSpot(3, 18000),
-                      FlSpot(4, 14000),
-                      FlSpot(5, 21000),
-                    ],
+                    spots: puntosGrafica,
                     isCurved: true,
                     curveSmoothness: 0.35,
                     color: const Color(0xFF10B981),

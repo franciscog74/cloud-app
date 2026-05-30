@@ -39,6 +39,19 @@ class _InicioTabState extends State<InicioTab> {
         
         Map<String, Map<String, dynamic>> categoriasMap = {};
 
+        // ALGORITMO MESES
+        DateTime ahora = DateTime.now();
+        List<String> nombresMeses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+        List<double> gastosSeisMeses = List.filled(6, 0.0);
+        List<String> etiquetasSeisMeses = [];
+        double maxGastoMensual = 0.0;
+
+        for (int i = 5; i >= 0; i--) {
+          int mesIndex = ahora.month - i - 1;
+          if (mesIndex < 0) mesIndex += 12;
+          etiquetasSeisMeses.add(nombresMeses[mesIndex]);
+        }
+
         for (var tx in listaTransacciones) {
           double monto = double.tryParse(tx['monto'].toString()) ?? 0;
           String tipo = tx['tipo'] ?? 'gasto';
@@ -48,9 +61,20 @@ class _InicioTabState extends State<InicioTab> {
             
             if (tx['fecha_registro'] != null) {
               try {
-                int indiceDia = DateTime.parse(tx['fecha_registro']).weekday - 1;
+                DateTime fechaTx = DateTime.parse(tx['fecha_registro']);
+                
+                // Lógica Semanal
+                int indiceDia = fechaTx.weekday - 1;
                 gastosPorDia[indiceDia] += monto;
                 if (gastosPorDia[indiceDia] > maxGastoDiario) maxGastoDiario = gastosPorDia[indiceDia];
+
+                // Lógica 6 Meses
+                int diffMeses = (ahora.year - fechaTx.year) * 12 + ahora.month - fechaTx.month;
+                if (diffMeses >= 0 && diffMeses < 6) {
+                  int indiceGrafica = 5 - diffMeses;
+                  gastosSeisMeses[indiceGrafica] += monto;
+                  if (gastosSeisMeses[indiceGrafica] > maxGastoMensual) maxGastoMensual = gastosSeisMeses[indiceGrafica];
+                }
               } catch (_) {}
             }
 
@@ -74,7 +98,12 @@ class _InicioTabState extends State<InicioTab> {
         }
 
         List<Map<String, dynamic>> datosParaPastel = categoriasMap.values.toList();
-        int diaActual = DateTime.now().weekday - 1;
+        int diaActual = ahora.weekday - 1;
+
+        List<FlSpot> puntosGraficaMeses = [];
+        for (int i = 0; i < 6; i++) {
+          puntosGraficaMeses.add(FlSpot(i.toDouble(), gastosSeisMeses[i]));
+        }
 
         return SingleChildScrollView(
           padding: const EdgeInsets.symmetric(vertical: 40.0, horizontal: 24.0),
@@ -110,7 +139,12 @@ class _InicioTabState extends State<InicioTab> {
                         
                         const Padding(padding: EdgeInsets.symmetric(vertical: 40.0), child: Divider(color: Color(0xFFF1F5F9), thickness: 2)),
                         
-                        const GastosMensualesChart(),
+                        // GRÁFICA YA CONECTADA A DATOS REALES
+                        GastosMensualesChart(
+                          puntosGrafica: puntosGraficaMeses,
+                          etiquetasMeses: etiquetasSeisMeses,
+                          maximoY: maxGastoMensual,
+                        ),
 
                         const Padding(padding: EdgeInsets.symmetric(vertical: 40.0), child: Divider(color: Color(0xFFF1F5F9), thickness: 2)),
 
